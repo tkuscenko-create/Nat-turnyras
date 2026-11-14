@@ -31,6 +31,9 @@ input:focus{border-color:#6366f1}
 .btn-save{background:#059669;margin-top:10px}
 .timer-box{text-align:center;padding:10px 0}
 .time-val{font-size:48px;font-family:monospace;font-weight:800;color:#fff;letter-spacing:-1px}
+.alert-box{padding:12px;border-radius:12px;font-size:13px;margin-top:12px;text-align:left;line-height:1.4}
+.alert-warn{background:#451a03;border:1px solid #b45309;color:#fcd34d}
+.alert-success{background:#064e3b;border:1px solid #059669;color:#6ee7b7}
 .place-card{background:#030712;border:1px solid #1f2937;border-radius:16px;padding:14px;margin-bottom:12px;text-align:center;position:relative}
 .place-1{border-color:#d97706;background:linear-gradient(180deg, #2e1065 0%, #030712 100%)}
 .place-2{border-color:#334155}
@@ -80,24 +83,79 @@ const OCTAVES=[
   {id:'mazoji', name:'Mažoji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
   {id:'didzioji', name:'Didžioji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'}
 ];
-let records=JSON.parse(localStorage.getItem('notes_rec_v17')||'[]');
-let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='';
+let records=JSON.parse(localStorage.getItem('notes_rec_v19')||'[]');
+let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='',lastResultNotice=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 if(!soundEnabled)return;
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v17',JSON.stringify(records));render();}
+function saveRecords(){localStorage.setItem('notes_rec_v19',JSON.stringify(records));render();}
 function formatTime(ms){if(ms==null)return'00:00.00';const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),h=Math.floor((ms%1000)/10);return `${m<10?'0':''}${m}:${s<10?'0':''}${s}.${h<10?'0':''}${h}`}
 function formatSec(ms){return (ms/1000).toFixed(2)+' s'}
 function getUniqueNames(){return [...new Set(records.map(r=>r.name))];}
-function startSequence(e){if(e)e.preventDefault();if(!studentName.trim())return;time=0;countdown=3;gameState='countdown';render();runCountdown();}
+function startSequence(e){if(e)e.preventDefault();if(!studentName.trim())return;time=0;countdown=3;lastResultNotice=null;gameState='countdown';render();runCountdown();}
 function runCountdown(){
 if(countdown>0){playBeep(523.25,'square',0.2,0.4);setTimeout(()=>{countdown--;render();runCountdown();},1000);}
 else{playBeep(1046.50,'sawtooth',0.5,0.5);gameState='running';startTimeRef=Date.now();timerRef=setInterval(()=>{time=Date.now()-startTimeRef;renderTime();},10);render();}
 }
-function stopTimer(){clearInterval(timerRef);const finalTime=Date.now()-startTimeRef;time=finalTime;gameState='review';playBeep(659.25,'sine',0.3,0.4);render();}
-function confirmRecord(){saveOrUpdate(studentName.trim(),selectedOctave,time,customNote);gameState='idle';customNote='';render();}
+function stopTimer(){clearInterval(timerRef);const finalTime=Date.now()-startTimeRef;time=finalTime;gameState='review';playBeep(659.25,'sine',0.3,0.4);checkRecordResult(studentName.trim(),selectedOctave,finalTime);render();}
+
+function getRankList(octave){
+const bestMap={};
+records.filter(r=>r.octave===octave).forEach(r=>{
+if(!bestMap[r.name.toLowerCase()]||r.time<bestMap[r.name.toLowerCase()].time){bestMap[r.name.toLowerCase()]=r;}
+});
+return Object.values(bestMap).sort((a,b)=>a.time-b.time);
+}
+
+function checkRecordResult(name,octave,newTime){
+const currentBestList=getRankList(octave);
+const oldRankIndex=currentBestList.findIndex(r=>r.name.toLowerCase()===name.toLowerCase());
+const existingRecord=oldRankIndex!==-1?currentBestList[oldRankIndex]:null;
+
+if(existingRecord){
+const bestTime=existingRecord.time;
+if(newTime>=bestTime){
+const diffSec=((newTime-bestTime)/1000).toFixed(2);
+lastResultNotice={
+type:'warn',
+msg:`⚠️ <strong>Rezultatas neišsaugotas.</strong> ${name} geriausias rekordas yra <strong>${formatSec(bestTime)}</strong> (vieta #${oldRankIndex+1}), o dabartinis laikas <strong>${formatSec(newTime)}</strong> yra lėtesnis (+${diffSec} s).`
+};
+return;
+}else{
+const diffSec=((bestTime-newTime)/1000).toFixed(2);
+const tempList=currentBestList.filter(r=>r.name.toLowerCase()!==name.toLowerCase());
+tempList.push({name,time:newTime});
+tempList.sort((a,b)=>a.time-b.time);
+const newRankIndex=tempList.findIndex(r=>r.name.toLowerCase()===name.toLowerCase());
+const rankDiff=(oldRankIndex+1)-(newRankIndex+1);
+
+let rankMsg=rankDiff>0?`<br/>🚀 <strong>Pakilo per +${rankDiff} vietą(-as)!</strong> (Dabar užima #${newRankIndex+1} vietą)`:`<br/>📍 Pozicija lentelėje: #${newRankIndex+1} vieta`;
+
+lastResultNotice={
+type:'success',
+msg:`🎉 <strong>Naujas rekordas!</strong> ${name} pagerino savo laiką <strong>-${diffSec} s</strong> greičiau!${rankMsg}`
+};
+}
+}else{
+const tempList=[...currentBestList,{name,time:newTime}].sort((a,b)=>a.time-b.time);
+const newRankIndex=tempList.findIndex(r=>r.name.toLowerCase()===name.toLowerCase());
+lastResultNotice={
+type:'success',
+msg:`✨ <strong>Sveikiname!</strong> ${name} Pirmą kartą patenka į lentelę ir užima <strong>#${newRankIndex+1} vietą!</strong>`
+};
+}
+}
+
+function confirmRecord(){
+if(lastResultNotice&&lastResultNotice.type==='warn'){
+gameState='idle';customNote='';lastResultNotice=null;render();return;
+}
+saveOrUpdate(studentName.trim(),selectedOctave,time,customNote);
+gameState='idle';customNote='';lastResultNotice=null;render();
+}
+
 function saveOrUpdate(name,octave,newTime,note=''){
 const now=new Date();
 const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -105,13 +163,16 @@ const existingList=records.filter(r=>r.octave===octave&&r.name.toLowerCase()===n
 let diffMs=null;
 if(existingList.length>0){
 const bestTime=Math.min(...existingList.map(r=>r.time));
+if(newTime>=bestTime) return;
 diffMs=newTime-bestTime;
 }
 records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,note});
 filterOctave=octave;saveRecords();
 }
+
 function renderTime(){const el=document.getElementById('live-time');if(el)el.innerText=formatTime(time);}
 function setFilterMode(m){filterMode=m;render();}
+
 function render(){
 document.getElementById('tab-best').className=`tab-btn ${filterMode==='best'?'active':''}`;
 document.getElementById('tab-all').className=`tab-btn ${filterMode==='all'?'active':''}`;
@@ -130,11 +191,18 @@ ${names.length>0?`<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Gr
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8;margin-bottom:12px;cursor:pointer"><input type="checkbox" ${soundEnabled?'checked':''} onchange="soundEnabled=this.checked" style="width:auto;margin:0" /> 3-2-1 pradžios atgalinis skaičiavimas su garsu</label>
 <button type="submit" class="btn">► Pradėti</button></form>`;
 }else if(gameState==='countdown'){
-tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div style="font-size:72px;font-weight:900;color:#fbbf24;margin:10px 0">${countdown>0?countdown:'PIRMYN!'}</div><div style="color:#94a3b8;font-size:12px">Paspauskite „Pradėti“, kad paleistumėte laikmatį</div></div>`;
+tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div style="font-size:72px;font-weight:900;color:#fbbf24;margin:10px 0">${countdown>0?countdown:'PIRMYN!'}</div><div style="color:#94a3b8;font-size:12px">Pasiruoškite sakyti natas...</div></div>`;
 }else if(gameState==='running'){
 tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div id="live-time" class="time-val" style="margin:10px 0">${formatTime(time)}</div><button onclick="stopTimer()" class="btn btn-stop">■ SUSTABDYTI</button></div>`;
 }else if(gameState==='review'){
-tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div class="time-val" style="margin:10px 0">${formatTime(time)}</div><div style="font-size:13px;color:#fbbf24;margin-bottom:10px">${formatSec(time)}</div><input type="text" placeholder="Papildoma pastaba (pvz., be klaidų)..." value="${customNote}" oninput="customNote=this.value" /><div style="display:flex;gap:8px"><button onclick="confirmRecord()" class="btn btn-save">✨ Išsaugoti rekordą!</button><button onclick="gameState='idle';render()" class="btn" style="background:#374151">🔄 Iš naujo</button></div></div>`;
+const isWarn=lastResultNotice&&lastResultNotice.type==='warn';
+tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div class="time-val" style="margin:10px 0">${formatTime(time)}</div><div style="font-size:13px;color:#fbbf24;margin-bottom:10px">${formatSec(time)}</div>
+${lastResultNotice?`<div class="alert-box ${isWarn?'alert-warn':'alert-success'}">${lastResultNotice.msg}</div>`:''}
+${!isWarn?`<input type="text" style="margin-top:10px" placeholder="Papildoma pastaba (pvz., be klaidų)..." value="${customNote}" oninput="customNote=this.value" />`:''}
+<div style="display:flex;gap:8px;margin-top:12px">
+<button onclick="confirmRecord()" class="btn ${isWarn?'':'btn-save'}">${isWarn?'Supratau (Gerai)':'✨ Išsaugoti rekordą!'}</button>
+<button onclick="gameState='idle';render()" class="btn" style="background:#374151">🔄 Kitas bandymas</button>
+</div></div>`;
 }
 document.getElementById('oct-filter').innerHTML=OCTAVES.map(o=>`<option value="${o.id}" ${filterOctave===o.id?'selected':''}>${o.clefIcon} ${o.name}</option>`).join('');
 let filtered=records.filter(r=>r.octave===filterOctave);
