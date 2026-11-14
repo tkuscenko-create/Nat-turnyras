@@ -7,7 +7,7 @@ try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=
 };
 
 function App(){
-const [records,setRecords]=useState(()=>{try{const s=localStorage.getItem('notes_rec_v10');return s?JSON.parse(s):[]}catch(e){return []}});
+const [records,setRecords]=useState(()=>{try{const s=localStorage.getItem('notes_rec_v11');return s?JSON.parse(s):[]}catch(e){return []}});
 const [studentName,setStudentName]=useState('');
 const [selectedOctave,setSelectedOctave]=useState('pirmoji');
 const [filterOctave,setFilterOctave]=useState('pirmoji');
@@ -24,7 +24,7 @@ const [editOctave,setEditOctave]=useState('pirmoji');
 const [editSeconds,setEditSeconds]=useState('');
 const timerRef=useRef(null),startTimeRef=useRef(null);
 
-useEffect(()=>{try{localStorage.setItem('notes_rec_v10',JSON.stringify(records))}catch(e){}},[records]);
+useEffect(()=>{try{localStorage.setItem('notes_rec_v11',JSON.stringify(records))}catch(e){}},[records]);
 
 useEffect(()=>{
 let i=null;
@@ -76,17 +76,6 @@ const diffMs=existing?existing.time-newTime:null;
 const prevRank=existing?oldRanks[existing.id]:null;
 const newRecord={id:targetEditId||Date.now().toString(),name,octave,time:newTime,date:new Date().toLocaleDateString('lt-LT'),previousRank:prevRank,timeDiffMs:diffMs,isNew:!existing};
 setRecords([...filtered.filter(r=>!(r.name.toLowerCase()===name.toLowerCase()&&r.octave===octave)),newRecord])
-}
-setFilterOctave(octave);
-};
-
-const handleDeleteRecord=(id)=>{if(confirm('Ištrinti šį įrašą?'))setRecords(records.filter(r=>r.id!==id))};
-const handleClearAll=()=>{if(confirm('Ištrinti visus rezultatus?')){setRecords([]);localStorage.removeItem('notes_rec_v10')}};
-const formatTime=(ms)=>{if(ms===null||ms===undefined)return '0.00 s';const s=Math.floor(ms/1000),h=Math.floor((ms%1000)/10);return `${s}.${h<10?'0':''}${h} s`};
-
-const currentFilteredRecords=records.filter(r=>filterOctave==='all'||r.octave===filterOctave).sort((a,b)=>a.time-b.time);
-const top3=currentFilteredRecords.slice(0,3);
-const rest=currentFilteredRecords.slice(3);
 return (
 <div className="max-w-4xl mx-auto px-4 py-6">
 <h1 className="text-3xl md:text-4xl font-black text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-indigo-200 to-emerald-400">Natų pažinimo laiko lentelė</h1>
@@ -125,9 +114,9 @@ return (
 )}
 {gameState==='finished'&&(
 <div className="text-center py-4 space-y-4">
-<div className="text-xs font-bold text-slate-400 uppercase">Išsaugotas laikas</div>
+<div className="text-xs font-bold text-slate-400 uppercase">Automatiškai išsaugotas laikas</div>
 <div className="text-5xl font-mono font-black text-indigo-300">{formatTime(time)}</div>
-<button onClick={handleReset} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl text-base">Kitas mokinys 🔄</button>
+<button onClick={handleReset} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-base shadow-lg">Kitas mokinys 🔄</button>
 </div>
 )}
 </div>
