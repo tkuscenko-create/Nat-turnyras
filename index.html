@@ -16,7 +16,6 @@ input,select{width:100%;background:#030712;border:1px solid #1f2937;color:#fff;p
 input:focus{border-color:#6366f1}
 .quick-names{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .q-name-btn{background:#1e293b;border:1px solid #334155;color:#cbd5e1;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer}
-.q-name-btn:hover{background:#334155}
 .oct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .oct-card{background:#030712;border:1px solid #1f2937;border-radius:14px;padding:12px;cursor:pointer;position:relative}
 .oct-card.active{border-color:#4f46e5;background:#1e1b4b}
@@ -34,28 +33,39 @@ input:focus{border-color:#6366f1}
 .alert-box{padding:12px;border-radius:12px;font-size:13px;margin-top:12px;text-align:left;line-height:1.4}
 .alert-warn{background:#451a03;border:1px solid #b45309;color:#fcd34d}
 .alert-success{background:#064e3b;border:1px solid #059669;color:#6ee7b7}
-.place-card{background:#030712;border:1px solid #1f2937;border-radius:16px;padding:14px;margin-bottom:12px;text-align:center;position:relative}
+/* TOP 3 STILIUS (DIDELI) */
+.place-card{background:#030712;border:1px solid #1f2937;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;position:relative}
 .place-1{border-color:#d97706;background:linear-gradient(180deg, #2e1065 0%, #030712 100%)}
-.place-2{border-color:#334155}
+.place-2{border-color:#475569}
 .place-3{border-color:#78350f}
 .place-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.place-actions{display:flex;gap:8px}
+.place-actions{display:flex;gap:6px}
 .action-icon-btn{background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:6px}
 .action-icon-btn:hover{background:#1e293b;color:#fff}
-.place-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:4px 12px;border-radius:12px}
+.place-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:4px 12px;border-radius:12px}
 .tag-1{background:#f59e0b;color:#000}
 .tag-2{background:#475569;color:#fff}
 .tag-3{background:#b45309;color:#fff}
-.p-name{font-size:20px;font-weight:800;color:#fff}
+.p-name{font-size:22px;font-weight:900;color:#fff}
 .p-oct-badge{display:inline-block;background:#1e1b4b;color:#818cf8;font-size:11px;padding:2px 10px;border-radius:12px;margin:6px 0 10px 0}
-.p-time{font-size:32px;font-family:monospace;font-weight:800;color:#fbbf24}
+.p-time{font-size:36px;font-family:monospace;font-weight:900;color:#fbbf24}
 .p-diff{font-size:12px;font-weight:700;margin-top:2px}
 .diff-plus{color:#f87171}
 .diff-minus{color:#34d399}
-.rank-change{font-size:11px;font-weight:800;margin-top:4px}
+.rank-change{font-size:12px;font-weight:800;margin-top:4px}
 .rank-up{color:#34d399}
 .rank-down{color:#f87171}
 .p-date{font-size:11px;color:#6b7280;margin-top:6px}
+
+/* KITI DALYVIAI (SMULKESNIS SĄRAŠAS nuo #4) */
+.rest-header{font-size:12px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin:16px 0 8px 0;letter-spacing:0.5px}
+.rest-item{background:#030712;border:1px solid #1f2937;border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.rest-left{display:flex;align-items:center;gap:10px}
+.rest-rank{font-size:14px;font-weight:800;color:#64748b;width:24px}
+.rest-name{font-size:15px;font-weight:700;color:#f1f5f9}
+.rest-date{font-size:10px;color:#6b7280}
+.rest-right{text-align:right}
+.rest-time{font-size:16px;font-family:monospace;font-weight:800;color:#fbbf24}
 .filter-tabs{display:flex;background:#030712;border:1px solid #1f2937;padding:3px;border-radius:12px;margin-bottom:12px}
 .tab-btn{flex:1;background:none;border:none;color:#6b7280;padding:8px;font-size:11px;font-weight:700;border-radius:10px;cursor:pointer}
 .tab-btn.active{background:#1e293b;color:#fff}
@@ -90,14 +100,14 @@ const OCTAVES=[
   {id:'mazoji', name:'Mažoji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
   {id:'didzioji', name:'Didžioji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'}
 ];
-let records=JSON.parse(localStorage.getItem('notes_rec_v20')||'[]');
+let records=JSON.parse(localStorage.getItem('notes_rec_v21')||'[]');
 let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='',lastResultNotice=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 if(!soundEnabled)return;
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v20',JSON.stringify(records));render();}
+function saveRecords(){localStorage.setItem('notes_rec_v21',JSON.stringify(records));render();}
 function formatTime(ms){if(ms==null)return'00:00.00';const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),h=Math.floor((ms%1000)/10);return `${m<10?'0':''}${m}:${s<10?'0':''}${s}.${h<10?'0':''}${h}`}
 function formatSec(ms){return (ms/1000).toFixed(2)+' s'}
 function getUniqueNames(){return [...new Set(records.map(r=>r.name))];}
@@ -163,21 +173,21 @@ function confirmRecord(){
 if(lastResultNotice&&lastResultNotice.type==='warn'){
 gameState='idle';customNote='';lastResultNotice=null;render();return;
 }
-saveOrUpdate(studentName.trim(),selectedOctave,time,customNote,lastResultNotice?lastResultNotice.rankDiff:null);
+saveOrUpdate(studentName.trim(),selectedOctave,time,customNote,lastResultNotice?lastResultNotice.rankDiff:null,lastResultNotice?lastResultNotice.prevRank:null);
 gameState='idle';customNote='';lastResultNotice=null;render();
 }
 
-function saveOrUpdate(name,octave,newTime,note='',rankDiff=null){
+function saveOrUpdate(name,octave,newTime,note='',rankDiff=null,prevRank=null){
 const now=new Date();
 const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 const existingList=records.filter(r=>r.octave===octave&&r.name.toLowerCase()===name.toLowerCase());
 let diffMs=null;
 if(existingList.length>0){
 const bestTime=Math.min(...existingList.map(r=>r.time));
-if(newTime>=bestTime) return;
+if(newTime>=existingList[0].time&&newTime>=bestTime) return;
 diffMs=newTime-bestTime;
 }
-records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,rankDiff,note});
+records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,rankDiff,prevRank,note});
 filterOctave=octave;saveRecords();
 }
 
@@ -225,16 +235,28 @@ if(!bestMap[r.name.toLowerCase()]||r.time<bestMap[r.name.toLowerCase()].time){be
 filtered=Object.values(bestMap);
 }
 filtered.sort((a,b)=>a.time-b.time);
+
+const top3=filtered.slice(0,3);
+const rest=filtered.slice(3);
 let html='';
+
 if(filtered.length===0){
 html='<div style="text-align:center;color:#6b7280;padding:24px;font-size:13px">Šioje oktavoje dar nėra įrašytų rezultatų.</div>';
 }else{
-html=filtered.map((r,i)=>{
+// TOP 3 (DIDELĖS KORTELĖS)
+html+=top3.map((r,i)=>{
 const rank=i+1;
 let placeClass=rank===1?'place-1':rank===2?'place-2':rank===3?'place-3':'';
 let tagClass=rank===1?'tag-1':rank===2?'tag-2':rank===3?'tag-3':'';
 let medal=rank===1?'🏅 1 VIETA (AUKSAS)':rank===2?'🥈 2 VIETA':rank===3?'🥉 3 VIETA':`#${rank} VIETA`;
 const octObj=OCTAVES.find(o=>o.id===r.octave);
+let rankChangeHtml='';
+if(r.rankDiff!=null&&r.rankDiff>0){
+rankChangeHtml=`<div class="rank-change rank-up">▲ +${r.rankDiff} vieta(-os)</div>`;
+}else if(r.prevRank!=null&&r.prevRank<rank){
+rankChangeHtml=`<div class="rank-change rank-down">▼ -${rank-r.prevRank} vieta(-os)</div>`;
+}
+
 return `<div class="place-card ${placeClass}">
 <div class="place-top-row">
 <div class="place-tag ${tagClass}">${medal}</div>
@@ -248,11 +270,41 @@ return `<div class="place-card ${placeClass}">
 <div class="p-time">${formatTime(r.time)}</div>
 <div style="font-size:13px;color:#fbbf24;font-weight:700">${formatSec(r.time)}</div>
 ${r.diffMs!=null?`<div class="p-diff ${r.diffMs>0?'diff-plus':'diff-minus'}">${r.diffMs>0?'+':''}${formatSec(r.diffMs)}</div>`:''}
-${r.rankDiff!=null&&r.rankDiff>0?`<div class="rank-change rank-up">▲ +${r.rankDiff} vieta(-os)</div>`:''}
-${r.rankDiff!=null&&r.rankDiff<0?`<div class="rank-change rank-down">▼ ${r.rankDiff} vieta(-os)</div>`:''}
+${rankChangeHtml}
 <div class="p-date">📅 ${r.date} ${r.note?`• <i>${r.note}</i>`:''}</div>
 </div>`;
 }).join('');
+
+// LIKUSI DALYVIŲ LENTELĖ (NUO #4 VIETOS)
+if(rest.length>0){
+html+=`<div class="rest-header">📊 Kiti rezultatai (nuo #4 vietos)</div>`;
+html+=rest.map((r,i)=>{
+const rank=i+4;
+let rankChangeHtml='';
+if(r.rankDiff!=null&&r.rankDiff>0){
+rankChangeHtml=`<span class="rank-change rank-up" style="font-size:10px">▲ +${r.rankDiff}</span>`;
+}else if(r.prevRank!=null&&r.prevRank<rank){
+rankChangeHtml=`<span class="rank-change rank-down" style="font-size:10px">▼ -${rank-r.prevRank}</span>`;
+}
+return `<div class="rest-item">
+<div class="rest-left">
+<div class="rest-rank">#${rank}</div>
+<div>
+<div class="rest-name">${r.name}</div>
+<div class="rest-date">📅 ${r.date} ${r.note?`• <i>${r.note}</i>`:''}</div>
+</div>
+</div>
+<div class="rest-right">
+<div class="rest-time">${formatTime(r.time)}</div>
+<div style="font-size:11px;color:#fbbf24">${formatSec(r.time)} ${rankChangeHtml}</div>
+<div style="margin-top:2px">
+<button class="action-icon-btn" onclick="editRecordItem('${r.id}')">✏️</button>
+<button class="action-icon-btn" onclick="deleteRecordDirect('${r.id}')">🗑️</button>
+</div>
+</div>
+</div>`;
+}).join('');
+}
 }
 document.getElementById('records-list').innerHTML=html;
 }
