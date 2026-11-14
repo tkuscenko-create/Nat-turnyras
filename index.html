@@ -101,14 +101,14 @@ const OCTAVES=[
   {id:'mazoji', name:'Mažoji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
   {id:'didzioji', name:'Didžioji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'}
 ];
-let records=JSON.parse(localStorage.getItem('notes_rec_v22')||'[]');
+let records=JSON.parse(localStorage.getItem('notes_rec_v23')||'[]');
 let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='',lastResultNotice=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 if(!soundEnabled)return;
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v22',JSON.stringify(records));render();}
+function saveRecords(){localStorage.setItem('notes_rec_v23',JSON.stringify(records));render();}
 function formatTime(ms){if(ms==null)return'00:00.00';const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),h=Math.floor((ms%1000)/10);return `${m<10?'0':''}${m}:${s<10?'0':''}${s}.${h<10?'0':''}${h}`}
 function formatSec(ms){return (ms/1000).toFixed(2)+' s'}
 function getUniqueNames(){return [...new Set(records.map(r=>r.name))];}
@@ -138,7 +138,7 @@ if(newTime>=bestTime){
 const diffSec=((newTime-bestTime)/1000).toFixed(2);
 lastResultNotice={
 type:'warn',
-msg:`⚠️ <strong>Rezultatas neišsaugotas.</strong> ${name} geriausias rekordas yra <strong>${formatSec(bestTime)}</strong> (vieta #${oldRankIndex+1}), o dabartinis laikas <strong>${formatSec(newTime)}</strong> yra lėtesnis (+${diffSec} s).`
+msg:`⚠️ <strong>Rezultatas neišsaugotas.</strong> ${name} geriausias rekordas yra <strong>${formatTime(bestTime)}</strong> (vieta #${oldRankIndex+1}), o dabartinis laikas <strong>${formatTime(newTime)}</strong> yra lėtesnis (+${diffSec} s).`
 };
 return;
 }else{
@@ -230,7 +230,7 @@ tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;fo
 tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div id="live-time" class="time-val" style="margin:10px 0">${formatTime(time)}</div><button onclick="stopTimer()" class="btn btn-stop">■ SUSTABDYTI</button></div>`;
 }else if(gameState==='review'){
 const isWarn=lastResultNotice&&lastResultNotice.type==='warn';
-tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div class="time-val" style="margin:10px 0">${formatTime(time)}</div><div style="font-size:13px;color:#fbbf24;margin-bottom:10px">${formatSec(time)}</div>
+tc.innerHTML=`<div class="timer-box"><div style="font-size:12px;color:#818cf8;font-weight:700">${octObj.name.toUpperCase()} • ${studentName.toUpperCase()}</div><div class="time-val" style="margin:10px 0">${formatTime(time)}</div>
 ${lastResultNotice?`<div class="alert-box ${isWarn?'alert-warn':'alert-success'}">${lastResultNotice.msg}</div>`:''}
 ${!isWarn?`<input type="text" style="margin-top:10px" placeholder="Papildoma pastaba (pvz., be klaidų)..." value="${customNote}" oninput="customNote=this.value" />`:''}
 <div style="display:flex;gap:8px;margin-top:12px">
@@ -281,7 +281,6 @@ return `<div class="place-card ${placeClass}">
 <div class="p-name">${r.name}</div>
 <div class="p-oct-badge">${octObj?octObj.name:''}</div>
 <div class="p-time">${formatTime(r.time)}</div>
-<div style="font-size:13px;color:#fbbf24;font-weight:700">${formatSec(r.time)}</div>
 ${r.diffMs!=null?`<div class="p-diff ${r.diffMs>0?'diff-plus':'diff-minus'}">${r.diffMs>0?'+':''}${formatSec(r.diffMs)}</div>`:''}
 ${rankChangeHtml}
 <div class="p-date">📅 ${r.date} ${r.note?`• <i>${r.note}</i>`:''}</div>
@@ -308,8 +307,7 @@ return `<div class="rest-item">
 </div>
 </div>
 <div class="rest-right">
-<div class="rest-time">${formatTime(r.time)}</div>
-<div style="font-size:11px;color:#fbbf24">${formatSec(r.time)} ${rankChangeHtml}</div>
+<div class="rest-time">${formatTime(r.time)} ${rankChangeHtml}</div>
 <div style="margin-top:2px">
 <button class="action-icon-btn" onclick="editRecordItem('${r.id}')">✏️</button>
 <button class="action-icon-btn" onclick="deleteRecordDirect('${r.id}')">🗑️</button>
