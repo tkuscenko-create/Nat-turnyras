@@ -38,7 +38,11 @@ input:focus{border-color:#6366f1}
 .place-1{border-color:#d97706;background:linear-gradient(180deg, #2e1065 0%, #030712 100%)}
 .place-2{border-color:#334155}
 .place-3{border-color:#78350f}
-.place-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:4px 12px;border-radius:12px;margin-bottom:8px}
+.place-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.place-actions{display:flex;gap:8px}
+.action-icon-btn{background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.action-icon-btn:hover{background:#1e293b;color:#fff}
+.place-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:4px 12px;border-radius:12px}
 .tag-1{background:#f59e0b;color:#000}
 .tag-2{background:#475569;color:#fff}
 .tag-3{background:#b45309;color:#fff}
@@ -48,6 +52,9 @@ input:focus{border-color:#6366f1}
 .p-diff{font-size:12px;font-weight:700;margin-top:2px}
 .diff-plus{color:#f87171}
 .diff-minus{color:#34d399}
+.rank-change{font-size:11px;font-weight:800;margin-top:4px}
+.rank-up{color:#34d399}
+.rank-down{color:#f87171}
 .p-date{font-size:11px;color:#6b7280;margin-top:6px}
 .filter-tabs{display:flex;background:#030712;border:1px solid #1f2937;padding:3px;border-radius:12px;margin-bottom:12px}
 .tab-btn{flex:1;background:none;border:none;color:#6b7280;padding:8px;font-size:11px;font-weight:700;border-radius:10px;cursor:pointer}
@@ -83,14 +90,14 @@ const OCTAVES=[
   {id:'mazoji', name:'Mažoji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
   {id:'didzioji', name:'Didžioji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'}
 ];
-let records=JSON.parse(localStorage.getItem('notes_rec_v19')||'[]');
+let records=JSON.parse(localStorage.getItem('notes_rec_v20')||'[]');
 let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='',lastResultNotice=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 if(!soundEnabled)return;
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v19',JSON.stringify(records));render();}
+function saveRecords(){localStorage.setItem('notes_rec_v20',JSON.stringify(records));render();}
 function formatTime(ms){if(ms==null)return'00:00.00';const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),h=Math.floor((ms%1000)/10);return `${m<10?'0':''}${m}:${s<10?'0':''}${s}.${h<10?'0':''}${h}`}
 function formatSec(ms){return (ms/1000).toFixed(2)+' s'}
 function getUniqueNames(){return [...new Set(records.map(r=>r.name))];}
@@ -135,7 +142,9 @@ let rankMsg=rankDiff>0?`<br/>🚀 <strong>Pakilo per +${rankDiff} vietą(-as)!</
 
 lastResultNotice={
 type:'success',
-msg:`🎉 <strong>Naujas rekordas!</strong> ${name} pagerino savo laiką <strong>-${diffSec} s</strong> greičiau!${rankMsg}`
+msg:`🎉 <strong>Naujas rekordas!</strong> ${name} pagerino savo laiką <strong>-${diffSec} s</strong> greičiau!${rankMsg}`,
+rankDiff,
+prevRank: oldRankIndex+1
 };
 }
 }else{
@@ -143,7 +152,9 @@ const tempList=[...currentBestList,{name,time:newTime}].sort((a,b)=>a.time-b.tim
 const newRankIndex=tempList.findIndex(r=>r.name.toLowerCase()===name.toLowerCase());
 lastResultNotice={
 type:'success',
-msg:`✨ <strong>Sveikiname!</strong> ${name} Pirmą kartą patenka į lentelę ir užima <strong>#${newRankIndex+1} vietą!</strong>`
+msg:`✨ <strong>Sveikiname!</strong> ${name} Pirmą kartą patenka į lentelę ir užima <strong>#${newRankIndex+1} vietą!</strong>`,
+rankDiff: null,
+prevRank: null
 };
 }
 }
@@ -152,11 +163,11 @@ function confirmRecord(){
 if(lastResultNotice&&lastResultNotice.type==='warn'){
 gameState='idle';customNote='';lastResultNotice=null;render();return;
 }
-saveOrUpdate(studentName.trim(),selectedOctave,time,customNote);
+saveOrUpdate(studentName.trim(),selectedOctave,time,customNote,lastResultNotice?lastResultNotice.rankDiff:null);
 gameState='idle';customNote='';lastResultNotice=null;render();
 }
 
-function saveOrUpdate(name,octave,newTime,note=''){
+function saveOrUpdate(name,octave,newTime,note='',rankDiff=null){
 const now=new Date();
 const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 const existingList=records.filter(r=>r.octave===octave&&r.name.toLowerCase()===name.toLowerCase());
@@ -166,7 +177,7 @@ const bestTime=Math.min(...existingList.map(r=>r.time));
 if(newTime>=bestTime) return;
 diffMs=newTime-bestTime;
 }
-records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,note});
+records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,rankDiff,note});
 filterOctave=octave;saveRecords();
 }
 
@@ -224,7 +235,23 @@ let placeClass=rank===1?'place-1':rank===2?'place-2':rank===3?'place-3':'';
 let tagClass=rank===1?'tag-1':rank===2?'tag-2':rank===3?'tag-3':'';
 let medal=rank===1?'🏅 1 VIETA (AUKSAS)':rank===2?'🥈 2 VIETA':rank===3?'🥉 3 VIETA':`#${rank} VIETA`;
 const octObj=OCTAVES.find(o=>o.id===r.octave);
-return `<div class="place-card ${placeClass}"><div class="place-tag ${tagClass}">${medal}</div><div class="p-name">${r.name}</div><div class="p-oct-badge">${octObj?octObj.name:''}</div><div class="p-time">${formatTime(r.time)}</div><div style="font-size:13px;color:#fbbf24;font-weight:700">${formatSec(r.time)}</div>${r.diffMs!=null?`<div class="p-diff ${r.diffMs>0?'diff-plus':'diff-minus'}">${r.diffMs>0?'+':''}${formatSec(r.diffMs)}</div>`:''}<div class="p-date">📅 ${r.date} ${r.note?`• <i>${r.note}</i>`:''}</div></div>`;
+return `<div class="place-card ${placeClass}">
+<div class="place-top-row">
+<div class="place-tag ${tagClass}">${medal}</div>
+<div class="place-actions">
+<button class="action-icon-btn" title="Redaguoti" onclick="editRecordItem('${r.id}')">✏️</button>
+<button class="action-icon-btn" title="Ištrinti" onclick="deleteRecordDirect('${r.id}')">🗑️</button>
+</div>
+</div>
+<div class="p-name">${r.name}</div>
+<div class="p-oct-badge">${octObj?octObj.name:''}</div>
+<div class="p-time">${formatTime(r.time)}</div>
+<div style="font-size:13px;color:#fbbf24;font-weight:700">${formatSec(r.time)}</div>
+${r.diffMs!=null?`<div class="p-diff ${r.diffMs>0?'diff-plus':'diff-minus'}">${r.diffMs>0?'+':''}${formatSec(r.diffMs)}</div>`:''}
+${r.rankDiff!=null&&r.rankDiff>0?`<div class="rank-change rank-up">▲ +${r.rankDiff} vieta(-os)</div>`:''}
+${r.rankDiff!=null&&r.rankDiff<0?`<div class="rank-change rank-down">▼ ${r.rankDiff} vieta(-os)</div>`:''}
+<div class="p-date">📅 ${r.date} ${r.note?`• <i>${r.note}</i>`:''}</div>
+</div>`;
 }).join('');
 }
 document.getElementById('records-list').innerHTML=html;
@@ -240,6 +267,23 @@ html+=`<button onclick="closeModal()" class="btn" style="margin-top:14px">Uždar
 document.getElementById('modal-container').innerHTML=html;
 }
 function deleteRecord(id){records=records.filter(r=>r.id!==id);saveRecords();openHistoryModal();}
+function deleteRecordDirect(id){if(confirm('Ar tikrai norite ištrinti šį įrašą?')){records=records.filter(r=>r.id!==id);saveRecords();}}
+function editRecordItem(id){
+const r=records.find(item=>item.id===id);
+if(!r) return;
+document.getElementById('modal-container').innerHTML=`<div class="modal"><div class="modal-box"><h3 style="margin-top:0">Redaguoti įrašą</h3><span class="label">Vaiko vardas</span><input id="edit-name" type="text" value="${r.name}" /><span class="label">Oktava</span><select id="edit-oct">${OCTAVES.map(o=>`<option value="${o.id}" ${r.octave===o.id?'selected':''}>${o.clefIcon} ${o.name}</option>`).join('')}</select><span class="label">Laikas sekundėmis</span><input id="edit-sec" type="number" step="0.01" value="${(r.time/1000).toString()}" /><span class="label">Pastaba</span><input id="edit-note" type="text" value="${r.note||''}" /><div style="display:flex;gap:8px;margin-top:10px"><button onclick="saveEditRecord('${id}')" class="btn btn-save">Atnaujinti</button><button onclick="closeModal()" class="btn" style="background:#374151">Atšaukti</button></div></div></div>`;
+}
+function saveEditRecord(id){
+const n=document.getElementById('edit-name').value;
+const o=document.getElementById('edit-oct').value;
+const s=document.getElementById('edit-sec').value;
+const nt=document.getElementById('edit-note').value;
+if(n&&s){
+records=records.map(r=>r.id===id?{...r,name:n.trim(),octave:o,time:parseFloat(s)*1000,note:nt}:r);
+saveRecords();
+closeModal();
+}
+}
 function openManualModal(){
 document.getElementById('modal-container').innerHTML=`<div class="modal"><div class="modal-box"><h3 style="margin-top:0">Pridėti rezultatą rankiniu būdu</h3><input id="m-name" type="text" placeholder="Vaiko vardas" /><select id="m-oct">${OCTAVES.map(o=>`<option value="${o.id}">${o.clefIcon} ${o.name}</option>`).join('')}</select><input id="m-sec" type="number" step="0.01" placeholder="Laikas sekundėmis (pvz. 4.06)" /><input id="m-note" type="text" placeholder="Pastaba (pasirinktinai)" /><div style="display:flex;gap:8px"><button onclick="submitManual()" class="btn btn-save">Išsaugoti</button><button onclick="closeModal()" class="btn" style="background:#374151">Atšaukti</button></div></div></div>`;
 }
