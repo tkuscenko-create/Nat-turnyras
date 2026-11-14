@@ -1,64 +1,84 @@
-<!DOCTYPE html><html lang="lt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Natų pažinimo laiko lentelė</title><style>
-body{background:#020617;color:#f8fafc;font-family:sans-serif;margin:0;padding:15px}
-.app{max-width:800px;margin:0 auto}
-h1{text-align:center;color:#fcd34d;font-size:24px;margin-bottom:20px}
-.card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:16px;margin-bottom:16px}
-input,select{width:100%;background:#020617;border:1px solid #334155;color:#fff;padding:10px;border-radius:8px;box-sizing:border-box;margin-bottom:10px;font-size:14px}
-.btn{width:100%;background:#4f46e5;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px}
-.btn-stop{background:#e11d48;font-size:20px;padding:15px}
-.oct-group-title{font-size:11px;color:#94a3b8;font-weight:bold;margin:8px 0 4px 0;text-transform:uppercase}
-.oct-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.oct-btn{background:#020617;border:1px solid #1e293b;color:#94a3b8;padding:8px;border-radius:8px;font-size:12px;cursor:pointer;text-align:left}
-.oct-btn.active{background:#4f46e5;color:#fff;border-color:#6366f1}
-.item{display:flex;justify-content:space-between;align-items:center;background:#020617;border:1px solid #1e293b;padding:12px;border-radius:12px;margin-bottom:8px}
-.item.top{border-color:#f59e0b;background:#1e1b4b}
-.badge{background:#6366f1;color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px}
-.up{color:#4ade80;font-size:11px;font-weight:bold}
-.down{color:#f43f5e;font-size:11px;font-weight:bold}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;padding:15px;z-index:99}
-.modal-box{background:#0f172a;border:1px solid #1e293b;padding:20px;border-radius:16px;width:100%;max-width:350px}
+<!DOCTYPE html><html lang="lt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Vaikų greičio rekordai</title><style>
+*{box-sizing:border-box}
+body{background:#0a0f1d;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:12px}
+.app{max-width:500px;margin:0 auto}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.logo{background:#4f46e5;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold}
+.title{font-size:20px;font-weight:800;color:#fff}
+.card{background:#111827;border:1px solid #1f2937;border-radius:20px;padding:16px;margin-bottom:16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.5)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;background:#0b0f19;border:1px solid #374151;color:#fff;padding:14px;border-radius:12px;font-size:15px;margin-bottom:12px;outline:none}
+input:focus{border-color:#6366f1}
+.oct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.oct-card{background:#0b0f19;border:1px solid #1f2937;border-radius:14px;padding:12px;cursor:pointer;position:relative;transition:all 0.2s}
+.oct-card.active{border-color:#6366f1;background:#1e1b4b}
+.oct-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.oct-name{font-size:14px;font-weight:700;color:#fff}
+.oct-badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;text-transform:uppercase}
+.boso{background:#065f46;color:#34d399}
+.smuiko{background:#831843;color:#f472b6}
+.oct-sub{font-size:11px;color:#6b7280}
+.oct-notes{font-size:10px;color:#4b5563;margin-top:4px;letter-spacing:1px}
+.btn{width:100%;background:#4f46e5;color:#fff;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-stop{background:#dc2626;font-size:18px;padding:16px}
+.btn-manual{background:#1f2937;color:#818cf8;margin-bottom:16px;border:1px solid #374151}
+.timer-display{text-align:center;padding:16px 0}
+.time-val{font-size:52px;font-family:monospace;font-weight:800;color:#34d399;letter-spacing:-1px}
+.countdown-val{font-size:72px;font-weight:900;color:#fbbf24}
+.place-card{background:#0b0f19;border:1px solid #1f2937;border-radius:16px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.place-1{border-color:#f59e0b;background:linear-gradient(180deg, #1e1b4b 0%, #0b0f19 100%)}
+.place-2{border-color:#475569}
+.place-3{border-color:#b45309}
+.place-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;margin-bottom:8px;text-transform:uppercase}
+.tag-1{background:#f59e0b;color:#000}
+.tag-2{background:#475569;color:#fff}
+.tag-3{background:#b45309;color:#fff}
+.p-name{font-size:18px;font-weight:800;color:#fff;margin-bottom:2px}
+.p-oct{font-size:11px;color:#818cf8;background:#1e1b4b;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:8px}
+.p-time{font-size:24px;font-family:monospace;font-weight:800;color:#fbbf24}
+.p-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#6b7280;margin-top:6px;padding-top:6px;border-top:1px solid #1f2937}
+.up{color:#34d399;font-weight:700}
+.down{color:#f87171;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:16px;z-index:99}
+.modal-box{background:#111827;border:1px solid #1f2937;border-radius:20px;padding:20px;width:100%;max-width:360px}
 </style></head><body><div class="app">
-<h1>Natų pažinimo laiko lentelė</h1>
-<div class="card" id="timer-card"></div>
-<button class="btn" style="background:#1e293b;color:#818cf8;margin-bottom:16px" onclick="openManualModal()">➕ Pridėti rezultatą rankiniu būdu</button>
-<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-<h3 style="margin:0">🏆 Rezultatų lentelė</h3>
-<button onclick="clearAll()" style="background:none;border:none;color:#f43f5e;cursor:pointer;font-size:12px">Išvalyti viską</button>
+<div class="header">
+<div class="logo">🎼</div>
+<div class="title">Vaikų greičio rekordai</div>
 </div>
-<label style="font-size:12px;color:#94a3b8">Filtras pagal oktavų derinį:</label>
-<select id="oct-filter-select" onchange="filterOctave=this.value;render()"></select>
+<div class="card" id="timer-card"></div>
+<button class="btn btn-manual" onclick="openManualModal()">+ Rankinis įvedimas</button>
+<div class="card">
+<div class="card-header">
+<div class="card-title">🏆 Lyderių lentelė</div>
+<button onclick="clearAll()" style="background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer">Išvalyti viską</button>
+</div>
+<select id="oct-filter" onchange="filterOctave=this.value;render()" style="margin-bottom:14px">
+<option value="pirmoji">Pirmoji oktava (c¹-h¹)</option>
+<option value="antroji">Antroji oktava (c²-h²)</option>
+<option value="mazoji">Mažoji oktava (c-h)</option>
+<option value="didzioji">Didžioji oktava (C-H)</option>
+</select>
 <div id="records-list"></div>
 </div>
 </div>
 <div id="modal-container"></div>
 <script>
 const OCTAVES=[
-  {id:'pirmoji', name:'Pirmoji oktava', icon:'🎹'},
-  {id:'antroji', name:'Antroji oktava', icon:'🎺'},
-  {id:'mazoji', name:'Mažoji oktava', icon:'🎸'},
-  {id:'didzioji', name:'Didžioji oktava', icon:'🎻'},
-  {id:'1_2', name:'1-a + 2-a oktavos', icon:'🎹🎺'},
-  {id:'1_maz', name:'1-a + Mažoji oktavos', icon:'🎹🎸'},
-  {id:'1_didz', name:'1-a + Didžioji oktavos', icon:'🎹🎻'},
-  {id:'maz_2', name:'Mažoji + 2-a oktavos', icon:'🎸🎺'},
-  {id:'didz_maz', name:'Didžioji + Mažoji oktavos', icon:'🎻🎸'},
-  {id:'didz_2', name:'Didžioji + 2-a oktavos', icon:'🎻🎺'},
-  {id:'didz_maz_1', name:'Didžioji + Mažoji + 1-a', icon:'🎻🎸🎹'},
-  {id:'maz_1_2', name:'Mažoji + 1-a + 2-a', icon:'🎸🎹🎺'},
-  {id:'didz_1_2', name:'Didžioji + 1-a + 2-a', icon:'🎻🎹🎺'},
-  {id:'didz_maz_2', name:'Didžioji + Mažoji + 2-a', icon:'🎻🎸🎺'},
-  {id:'all_4', name:'Visos 4 oktavos kartu', icon:'🌈'}
+  {id:'didzioji', name:'Didžioji oktava', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'},
+  {id:'mazoji', name:'Mažoji oktava', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
+  {id:'pirmoji', name:'Pirma oktava', badge:'SMUIKO', bClass:'smuiko', sub:'1-oji (c¹-h¹)', notes:'c¹ - d¹ - e¹ - f¹ - g¹ - a¹ - h¹'},
+  {id:'antroji', name:'Antra oktava', badge:'SMUIKO', bClass:'smuiko', sub:'2-oji (c²-h²)', notes:'c² - d² - e² - f² - g² - a² - h²'}
 ];
-
-let records=JSON.parse(localStorage.getItem('notes_rec_v14')||'[]');
+let records=JSON.parse(localStorage.getItem('notes_rec_v15')||'[]');
 let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',gameState='idle',countdown=3,time=0,timerRef=null,startTimeRef=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v14',JSON.stringify(records));render();}
-function formatTime(ms){if(ms==null)return'0.00 s';const s=Math.floor(ms/1000),h=Math.floor((ms%1000)/10);return `${s}.${h<10?'0':''}${h} s`}
+function saveRecords(){localStorage.setItem('notes_rec_v15',JSON.stringify(records));render();}
+function formatTime(ms){if(ms==null)return'00:00.00';const s=Math.floor(ms/1000),h=Math.floor((ms%1000)/10);return `${s<10?'0':''}${s}.${h<10?'0':''}${h} s`}
 function startSequence(e){e.preventDefault();if(!studentName.trim())return;time=0;countdown=3;gameState='countdown';render();runCountdown();}
 function runCountdown(){
 if(countdown>0){playBeep(523.25,'square',0.25,0.5);setTimeout(()=>{countdown--;render();runCountdown();},1000);}
@@ -82,46 +102,37 @@ function renderTime(){const el=document.getElementById('live-time');if(el)el.inn
 function render(){
 const tc=document.getElementById('timer-card');
 if(gameState==='idle'){
-tc.innerHTML=`<h3 style="margin:0 0 10px 0">⏱️ Sekundometras</h3><form onsubmit="startSequence(event)">
-<label style="font-size:12px;color:#94a3b8">Mokinio vardas</label>
-<input type="text" required placeholder="Vardas..." value="${studentName}" oninput="studentName=this.value" />
-<label style="font-size:12px;color:#94a3b8">Pasirinkite oktavų derinį</label>
-<select onchange="selectedOctave=this.value">
-${OCTAVES.map(o=>`<option value="${o.id}" ${selectedOctave===o.id?'selected':''}>${o.icon} ${o.name}</option>`).join('')}
-</select>
-<button type="submit" class="btn">PASIRENGTI IR PRADĖTI 🚀</button></form>`;
+tc.innerHTML=`<div class="card-header"><div class="card-title">⏱️ Laikmatis ir rekordas</div></div>
+<form onsubmit="startSequence(event)">
+<input type="text" required placeholder="Įrašykite vaiko vardą..." value="${studentName}" oninput="studentName=this.value" />
+<div class="oct-grid">${OCTAVES.map(o=>`<div class="oct-card ${selectedOctave===o.id?'active':''}" onclick="selectedOctave='${o.id}';render()"><div class="oct-head"><span class="oct-name">${o.name}</span><span class="oct-badge ${o.bClass}">${o.badge}</span></div><div class="oct-sub">${o.sub}</div><div class="oct-notes">${o.notes}</div></div>`).join('')}</div>
+<button type="submit" class="btn">► Pradėti laikmatį</button></form>`;
 }else if(gameState==='countdown'){
-tc.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:60px;font-weight:bold;color:#fcd34d">${countdown>0?countdown:'PIRMYN!'}</div><div style="color:#94a3b8;font-size:12px">Pasiruoškite sakyti natas...</div></div>`;
+tc.innerHTML=`<div class="timer-display"><div class="countdown-val">${countdown>0?countdown:'PIRMYN!'}</div><div style="color:#9ca3af;font-size:13px;margin-top:8px">Pasiruoškite sakyti natas...</div></div>`;
 }else if(gameState==='running'){
-tc.innerHTML=`<div style="text-align:center;padding:10px"><div id="live-time" style="font-size:48px;font-family:monospace;color:#4ade80;margin-bottom:15px">${formatTime(time)}</div><button onclick="stopTimer()" class="btn btn-stop">SUSTABDYTI 🛑</button></div>`;
+tc.innerHTML=`<div class="timer-display"><div id="live-time" class="time-val">${formatTime(time)}</div><button onclick="stopTimer()" class="btn btn-stop" style="margin-top:16px">■ SUSTABDYTI</button></div>`;
 }else if(gameState==='finished'){
-tc.innerHTML=`<div style="text-align:center"><div style="font-size:12px;color:#94a3b8">Automatiškai išsaugotas laikas</div><div style="font-size:36px;font-family:monospace;color:#818cf8;margin:10px 0">${formatTime(time)}</div><button onclick="gameState='idle';render()" class="btn">Kitas mokinys 🔄</button></div>`;
+tc.innerHTML=`<div class="timer-display"><div style="font-size:13px;color:#9ca3af">Automatiškai išsaugotas laikas</div><div class="time-val" style="color:#818cf8;margin:12px 0">${formatTime(time)}</div><button onclick="gameState='idle';render()" class="btn">🔄 Kitas mokinys</button></div>`;
 }
-const fs=document.getElementById('oct-filter-select');
-if(fs){fs.innerHTML=OCTAVES.map(o=>`<option value="${o.id}" ${filterOctave===o.id?'selected':''}>${o.icon} ${o.name}</option>`).join('');}
 const list=records.filter(r=>r.octave===filterOctave).sort((a,b)=>a.time-b.time);
-const top3=list.slice(0,3),rest=list.slice(3);
 let html='';
-if(top3.length>0){
-html+=`<div style="font-size:12px;color:#fcd34d;font-weight:bold;margin-bottom:8px">👑 TOP 3 LYDERIAI</div>`;
-html+=top3.map((r,i)=>{
-const rank=i+1,diff=r.previousRank?r.previousRank-rank:0,m=rank===1?'🥇':rank===2?'🥈':'🥉';
-return `<div class="item top"><div><span style="font-size:24px;margin-right:10px">${m}</span><strong style="font-size:18px">${r.name}</strong>${r.isNew?'<span class="badge">🆕 NAUJAS</span>':''}</div><div style="text-align:right"><div style="font-size:18px;font-family:monospace;color:#fcd34d;font-weight:bold">${formatTime(r.time)}</div>${diff>0?`<div class="up">▲ +${diff} vieta</div>`:diff<0?`<div class="down">▼ ${diff} vieta</div>`:''}${r.timeDiffMs?`<div class="up">- ${(r.timeDiffMs/1000).toFixed(2)}s greičiau</div>`:''}</div></div>`;
+if(list.length===0){
+html='<div style="text-align:center;color:#6b7280;padding:24px;font-size:14px">Šioje oktavoje dar nėra rezultatų.</div>';
+}else{
+html=list.map((r,i)=>{
+const rank=i+1,diff=r.previousRank?r.previousRank-rank:0;
+let placeClass=rank===1?'place-1':rank===2?'place-2':rank===3?'place-3':'';
+let tagClass=rank===1?'tag-1':rank===2?'tag-2':rank===3?'tag-3':'';
+let medal=rank===1?'🥇 1 VIETA (AUKSAS)':rank===2?'🥈 2 VIETA (SIDABRAS)':rank===3?'🥉 3 VIETA (BRONZA)':`#${rank} VIETA`;
+const octObj=OCTAVES.find(o=>o.id===r.octave);
+return `<div class="place-card ${placeClass}"><div class="place-tag ${tagClass}">${medal}</div><div><div class="p-name">${r.name} ${r.isNew?'<span style="font-size:10px;background:#6366f1;padding:2px 6px;border-radius:6px">NEW</span>':''}</div><div class="p-oct">${octObj?octObj.name:''}</div><div class="p-time">${formatTime(r.time)}</div></div><div class="p-meta"><span>📅 ${r.date}</span><div>${diff>0?`<span class="up">▲ +${diff} vieta</span>`:diff<0?`<span class="down">▼ ${diff} vieta</span>`:''}${r.timeDiffMs?`<span class="up" style="margin-left:8px">-${(r.timeDiffMs/1000).toFixed(2)}s</span>`:''}</div></div></div>`;
 }).join('');
 }
-if(rest.length>0){
-html+=`<div style="margin-top:15px;padding-top:10px;border-top:1px solid #1e293b"><div style="font-size:12px;color:#94a3b8;font-weight:bold;margin-bottom:8px">📊 Kiti dalyviai</div>`;
-html+=rest.map((r,i)=>{
-const rank=i+4,diff=r.previousRank?r.previousRank-rank:0;
-return `<div class="item"><div><span style="color:#64748b;font-weight:bold;margin-right:10px">#${rank}</span><span>${r.name}</span>${r.isNew?'<span class="badge">🆕 NAUJAS</span>':''}</div><div style="text-align:right"><div style="font-family:monospace;color:#818cf8;font-weight:bold">${formatTime(r.time)}</div>${diff>0?`<div class="up">▲ +${diff}</div>`:diff<0?`<div class="down">▼ ${diff}</div>`:''}${r.timeDiffMs?`<div class="up">- ${(r.timeDiffMs/1000).toFixed(2)}s</div>`:''}</div></div>`;
-}).join('')+`</div>`;
-}
-if(list.length===0){html='<div style="text-align:center;color:#64748b;padding:20px;font-size:14px">Šiame oktavų derinyje dar nėra rezultatų.</div>';}
 document.getElementById('records-list').innerHTML=html;
 }
 function clearAll(){if(confirm('Ištrinti visus rezultatus?')){records=[];saveRecords();}}
 function openManualModal(){
-document.getElementById('modal-container').innerHTML=`<div class="modal"><div class="modal-box"><h3>Pridėti rezultatą rankiniu būdu</h3><input id="m-name" type="text" placeholder="Vardas" /><select id="m-oct">${OCTAVES.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select><input id="m-sec" type="number" step="0.01" placeholder="Laikas sekundėmis (pvz. 12.45)" /><div style="display:flex;gap:8px"><button onclick="submitManual()" class="btn">Išsaugoti</button><button onclick="closeModal()" class="btn" style="background:#334155">Atšaukti</button></div></div></div>`;
+document.getElementById('modal-container').innerHTML=`<div class="modal"><div class="modal-box"><h3 style="margin-top:0">Pridėti rezultatą rankiniu būdu</h3><input id="m-name" type="text" placeholder="Vardas" /><select id="m-oct" style="margin-bottom:12px">${OCTAVES.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select><input id="m-sec" type="number" step="0.01" placeholder="Laikas sekundėmis (pvz. 4.53)" /><div style="display:flex;gap:8px"><button onclick="submitManual()" class="btn">Išsaugoti</button><button onclick="closeModal()" class="btn" style="background:#374151">Atšaukti</button></div></div></div>`;
 }
 function submitManual(){const n=document.getElementById('m-name').value,o=document.getElementById('m-oct').value,s=document.getElementById('m-sec').value;if(n&&s){saveOrUpdate(n.trim(),o,parseFloat(s)*1000);closeModal();}}
 function closeModal(){document.getElementById('modal-container').innerHTML='';}
