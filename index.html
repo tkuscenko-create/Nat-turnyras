@@ -33,6 +33,7 @@ input:focus{border-color:#6366f1}
 .alert-box{padding:12px;border-radius:12px;font-size:13px;margin-top:12px;text-align:left;line-height:1.4}
 .alert-warn{background:#451a03;border:1px solid #b45309;color:#fcd34d}
 .alert-success{background:#064e3b;border:1px solid #059669;color:#6ee7b7}
+
 /* TOP 3 STILIUS (DIDELI) */
 .place-card{background:#030712;border:1px solid #1f2937;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;position:relative}
 .place-1{border-color:#d97706;background:linear-gradient(180deg, #2e1065 0%, #030712 100%)}
@@ -100,14 +101,14 @@ const OCTAVES=[
   {id:'mazoji', name:'Mažoji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Mažoji (c-h)', notes:'c - d - e - f - g - a - h'},
   {id:'didzioji', name:'Didžioji oktava', clef:'boso', clefIcon:'𝄢', badge:'BOSO', bClass:'boso', sub:'Didžioji (C-H)', notes:'C - D - E - F - G - A - H'}
 ];
-let records=JSON.parse(localStorage.getItem('notes_rec_v21')||'[]');
+let records=JSON.parse(localStorage.getItem('notes_rec_v22')||'[]');
 let studentName='',selectedOctave='pirmoji',filterOctave='pirmoji',filterMode='best',gameState='idle',countdown=3,time=0,soundEnabled=true,timerRef=null,startTimeRef=null,customNote='',lastResultNotice=null;
 
 function playBeep(f,t='square',d=0.25,v=0.4){
 if(!soundEnabled)return;
 try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}
 }
-function saveRecords(){localStorage.setItem('notes_rec_v21',JSON.stringify(records));render();}
+function saveRecords(){localStorage.setItem('notes_rec_v22',JSON.stringify(records));render();}
 function formatTime(ms){if(ms==null)return'00:00.00';const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),h=Math.floor((ms%1000)/10);return `${m<10?'0':''}${m}:${s<10?'0':''}${s}.${h<10?'0':''}${h}`}
 function formatSec(ms){return (ms/1000).toFixed(2)+' s'}
 function getUniqueNames(){return [...new Set(records.map(r=>r.name))];}
@@ -152,9 +153,7 @@ let rankMsg=rankDiff>0?`<br/>🚀 <strong>Pakilo per +${rankDiff} vietą(-as)!</
 
 lastResultNotice={
 type:'success',
-msg:`🎉 <strong>Naujas rekordas!</strong> ${name} pagerino savo laiką <strong>-${diffSec} s</strong> greičiau!${rankMsg}`,
-rankDiff,
-prevRank: oldRankIndex+1
+msg:`🎉 <strong>Naujas rekordas!</strong> ${name} pagerino savo laiką <strong>-${diffSec} s</strong> greičiau!${rankMsg}`
 };
 }
 }else{
@@ -162,9 +161,7 @@ const tempList=[...currentBestList,{name,time:newTime}].sort((a,b)=>a.time-b.tim
 const newRankIndex=tempList.findIndex(r=>r.name.toLowerCase()===name.toLowerCase());
 lastResultNotice={
 type:'success',
-msg:`✨ <strong>Sveikiname!</strong> ${name} Pirmą kartą patenka į lentelę ir užima <strong>#${newRankIndex+1} vietą!</strong>`,
-rankDiff: null,
-prevRank: null
+msg:`✨ <strong>Sveikiname!</strong> ${name} Pirmą kartą patenka į lentelę ir užima <strong>#${newRankIndex+1} vietą!</strong>`
 };
 }
 }
@@ -173,21 +170,37 @@ function confirmRecord(){
 if(lastResultNotice&&lastResultNotice.type==='warn'){
 gameState='idle';customNote='';lastResultNotice=null;render();return;
 }
-saveOrUpdate(studentName.trim(),selectedOctave,time,customNote,lastResultNotice?lastResultNotice.rankDiff:null,lastResultNotice?lastResultNotice.prevRank:null);
+saveOrUpdate(studentName.trim(),selectedOctave,time,customNote);
 gameState='idle';customNote='';lastResultNotice=null;render();
 }
 
-function saveOrUpdate(name,octave,newTime,note='',rankDiff=null,prevRank=null){
+function saveOrUpdate(name,octave,newTime,note=''){
+const oldRanks={};
+getRankList(octave).forEach((r,idx)=>{ oldRanks[r.name.toLowerCase()]=idx+1; });
+
 const now=new Date();
 const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 const existingList=records.filter(r=>r.octave===octave&&r.name.toLowerCase()===name.toLowerCase());
 let diffMs=null;
 if(existingList.length>0){
 const bestTime=Math.min(...existingList.map(r=>r.time));
-if(newTime>=existingList[0].time&&newTime>=bestTime) return;
+if(newTime>=bestTime) return;
 diffMs=newTime-bestTime;
 }
-records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,rankDiff,prevRank,note});
+records.push({id:Date.now().toString(),name,octave,time:newTime,date:dateStr,diffMs,note});
+
+// ATNAUJINAME VISŲ MOKINIŲ RANGO POKYČIUS (Pakilimas / Nukritimas)
+const newRankList=getRankList(octave);
+records.forEach(r=>{
+if(r.octave===octave){
+const prevRank=oldRanks[r.name.toLowerCase()];
+const newRank=newRankList.findIndex(item=>item.name.toLowerCase()===r.name.toLowerCase())+1;
+if(prevRank && newRank){
+r.rankChange = prevRank - newRank; // >0 pakilo, <0 nukrito
+}
+}
+});
+
 filterOctave=octave;saveRecords();
 }
 
@@ -251,10 +264,10 @@ let tagClass=rank===1?'tag-1':rank===2?'tag-2':rank===3?'tag-3':'';
 let medal=rank===1?'🏅 1 VIETA (AUKSAS)':rank===2?'🥈 2 VIETA':rank===3?'🥉 3 VIETA':`#${rank} VIETA`;
 const octObj=OCTAVES.find(o=>o.id===r.octave);
 let rankChangeHtml='';
-if(r.rankDiff!=null&&r.rankDiff>0){
-rankChangeHtml=`<div class="rank-change rank-up">▲ +${r.rankDiff} vieta(-os)</div>`;
-}else if(r.prevRank!=null&&r.prevRank<rank){
-rankChangeHtml=`<div class="rank-change rank-down">▼ -${rank-r.prevRank} vieta(-os)</div>`;
+if(r.rankChange!=null&&r.rankChange>0){
+rankChangeHtml=`<div class="rank-change rank-up">▲ +${r.rankChange} vieta(-os)</div>`;
+}else if(r.rankChange!=null&&r.rankChange<0){
+rankChangeHtml=`<div class="rank-change rank-down">▼ -${Math.abs(r.rankChange)} vieta(-os)</div>`;
 }
 
 return `<div class="place-card ${placeClass}">
@@ -281,10 +294,10 @@ html+=`<div class="rest-header">📊 Kiti rezultatai (nuo #4 vietos)</div>`;
 html+=rest.map((r,i)=>{
 const rank=i+4;
 let rankChangeHtml='';
-if(r.rankDiff!=null&&r.rankDiff>0){
-rankChangeHtml=`<span class="rank-change rank-up" style="font-size:10px">▲ +${r.rankDiff}</span>`;
-}else if(r.prevRank!=null&&r.prevRank<rank){
-rankChangeHtml=`<span class="rank-change rank-down" style="font-size:10px">▼ -${rank-r.prevRank}</span>`;
+if(r.rankChange!=null&&r.rankChange>0){
+rankChangeHtml=`<span class="rank-change rank-up" style="font-size:10px">▲ +${r.rankChange}</span>`;
+}else if(r.rankChange!=null&&r.rankChange<0){
+rankChangeHtml=`<span class="rank-change rank-down" style="font-size:10px">▼ -${Math.abs(r.rankChange)}</span>`;
 }
 return `<div class="rest-item">
 <div class="rest-left">
