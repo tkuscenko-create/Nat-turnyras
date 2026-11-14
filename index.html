@@ -1,613 +1,440 @@
-```react
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Trophy, 
-  Play, 
-  Square, 
-  RotateCcw, 
-  Award, 
-  Music, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Minus, 
-  Trash2, 
-  User, 
-  Sparkles,
-  Zap,
-  Timer
-} from 'lucide-react';
-
-const OCTAVES = [
-  { id: 'all', name: 'Visos oktavos', icon: '🎵' },
-  { id: 'didzioji', name: 'Didžioji oktava', icon: '🎻' },
-  { id: 'mazoji', name: 'Mažoji oktava', icon: '🎸' },
-  { id: 'pirmoji', name: 'Pirmoji oktava', icon: '🎹' },
-  { id: 'antroji', name: 'Antroji oktava', icon: '🎺' }
-];
-
-// Sound utility using Web Audio API
-const playSound = (freq, type = 'sine', duration = 0.15) => {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (e) {
-    // Audio context might be restricted before user gesture
-  }
-};
-
-export default function App() {
-  const [records, setRecords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('notes_championship_records_v4');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-
-  const [studentName, setStudentName] = useState('');
-  const [selectedOctave, setSelectedOctave] = useState('pirmoji');
-  const [filterOctave, setFilterOctave] = useState('pirmoji');
-
-  // Game states: 'idle' | 'countdown' | 'running' | 'finished'
-  const [gameState, setGameState] = useState('idle');
-  const [countdown, setCountdown] = useState(3);
-  const [time, setTime] = useState(0);
-  const [lastRecordedTime, setLastRecordedTime] = useState(null);
-  const [feedbackMessage, setFeedbackMessage] = useState(null);
-
-  const timerRef = useRef(null);
-  const startTimeRef = useRef(null);
-
-  // Save records to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('notes_championship_records_v4', JSON.stringify(records));
-    } catch (e) {}
-  }, [records]);
-
-  // Handle Countdown sequence
-  useEffect(() => {
-    let interval = null;
-    if (gameState === 'countdown') {
-      if (countdown > 0) {
-        playSound(440 + (3 - countdown) * 110, 'sine', 0.12);
-        interval = setInterval(() => {
-          setCountdown((c) => c - 1);
-        }, 1000);
-      } else {
-        playSound(880, 'triangle', 0.3);
-        setGameState('running');
-        startTimeRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-          setTime(Date.now() - startTimeRef.current);
-        }, 10);
-      }
-    }
-    return () => clearInterval(interval);
-  }, [gameState, countdown]);
-
-  const handleStartTimer = (e) => {
-    e.preventDefault();
-    if (!studentName.trim()) return;
-    setFeedbackMessage(null);
-    setTime(0);
-    setLastRecordedTime(null);
-    setCountdown(3);
-    setGameState('countdown');
-  };
-
-  const handleStopTimer = () => {
-    clearInterval(timerRef.current);
-    const finalTime = Date.now() - startTimeRef.current;
-    setTime(finalTime);
-    setLastRecordedTime(finalTime);
-    setGameState('finished');
-    playSound(523.25, 'sine', 0.25);
-
-    saveOrUpdateRecord(studentName.trim(), selectedOctave, finalTime);
-  };
-
-  const handleReset = () => {
-    clearInterval(timerRef.current);
-    setGameState('idle');
-    setTime(0);
-  };
-
-  // Helper to get rank map for an octave
-  const getOctaveRanks = (allRecords, octave) => {
-    const octaveItems = allRecords
-      .filter((r) => r.octave === octave)
-      .sort((a, b) => a.time - b.time);
-    
-    const rankMap = {};
-    octaveItems.forEach((item, index) => {
-      rankMap[item.id] = index + 1;
-    });
-    return rankMap;
-  };
-
-  const saveOrUpdateRecord = (name, octave, newTime) => {
-    // Current rank map for this octave BEFORE insertion
-    const oldRanks = getOctaveRanks(records, octave);
-
-    // Find existing player record in this octave
-    const existingRecord = records.find(
-      (r) => r.name.toLowerCase() === name.toLowerCase() && r.octave === octave
-    );
-
-    if (existingRecord) {
-      if (newTime >= existingRecord.time) {
-        // Slower time: do not update
-        setFeedbackMessage({
-          type: 'warning',
-          text: `Ankstesnis ${name} rekordas (${formatTime(existingRecord.time)}) buvo greitesnis! Rezultatas neišsaugotas.`
-        });
-        return;
-      }
-
-      // Faster time: update record
-      const diffMs = existingRecord.time - newTime;
-      const prevRank = oldRanks[existingRecord.id];
-
-      const updatedRecords = records.map((r) => {
-        if (r.id === existingRecord.id) {
-          return {
-            ...r,
-            time: newTime,
-            date: new Date().toLocaleDateString('lt-LT'),
-            timeDiffMs: diffMs,
-            previousRank: prevRank
-          };
-        }
-        return r;
-      });
-
-      setRecords(updatedRecords);
-      setFeedbackMessage({
-        type: 'success',
-        text: `Puiku! ${name} pagerino savo rekordą -${(diffMs / 1000).toFixed(2)} s greičiau!`
-      });
-    } else {
-      // New record
-      const newRecord = {
-        id: Date.now().toString(),
-        name,
-        octave,
-        time: newTime,
-        date: new Date().toLocaleDateString('lt-LT'),
-        previousRank: null,
-        timeDiffMs: null
-      };
-
-      setRecords([...records, newRecord]);
-      setFeedbackMessage({
-        type: 'success',
-        text: `Naujas mokinys ${name} sėkmingai įtrauktas į lyderių lentelę!`
-      });
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Natų skaitymo čempionatas</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%230f172a%22/><text x=%2210%22 y=%22.9em%22 font-size=%2280%22>🎵</text></svg>">
+  <style>
+    :root {
+      --bg-dark: #020617;
+      --bg-card: #0f172a;
+      --bg-card-inner: #020617;
+      --border: #1e293b;
+      --border-input: #334155;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --indigo: #4f46e5;
+      --indigo-hover: #6366f1;
+      --indigo-light: #a5b4fc;
+      --emerald: #10b981;
+      --emerald-dark: #059669;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
     }
 
-    // Switch view to the player's octave so they see their placement
-    setFilterOctave(octave);
-  };
-
-  const handleDeleteRecord = (id) => {
-    setRecords(records.filter((r) => r.id !== id));
-  };
-
-  const handleClearAll = () => {
-    if (window.confirm('Ar tikrai norite ištrinti visus lyderių lentelės rezultatus?')) {
-      setRecords([]);
-      localStorage.removeItem('notes_championship_records_v4');
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-  };
 
-  const formatTime = (ms) => {
-    if (ms === null || ms === undefined) return '0.00 s';
-    const seconds = Math.floor(ms / 1000);
-    const hundredths = Math.floor((ms % 1000) / 10);
-    return `${seconds}.${hundredths < 10 ? '0' : ''}${hundredths} s`;
-  };
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 20px 16px;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-  // Get current sorted list for active filter
-  const currentFilteredRecords = records
-    .filter((r) => filterOctave === 'all' || r.octave === filterOctave)
-    .sort((a, b) => a.time - b.time);
+    /* Ambient glows */
+    .glow-1 {
+      position: fixed;
+      top: -120px;
+      left: -120px;
+      width: 320px;
+      height: 320px;
+      background: rgba(79, 70, 229, 0.14);
+      border-radius: 50%;
+      filter: blur(70px);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Background Decorator */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/3 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
-      </div>
+    .glow-2 {
+      position: fixed;
+      top: 35%;
+      right: -120px;
+      width: 320px;
+      height: 320px;
+      background: rgba(147, 51, 234, 0.14);
+      border-radius: 50%;
+      filter: blur(70px);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-      <div className="relative max-w-5xl mx-auto w-full px-4 py-6 md:py-10 flex-grow flex flex-col gap-8">
-        {/* Header */}
-        <header className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-semibold tracking-wide uppercase">
-            <Music className="w-3.5 h-3.5 text-indigo-400" />
-            Muzikos pamokos žaidimas
-          </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-indigo-200 to-emerald-400">
-            Natų skaitymo čempionatas
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base max-w-lg mx-auto">
-            Pasirinkite oktavą, įveskite mokinio vardą, įjunkite sekundometrą ir sužinokite, kas greičiausiai įvardins visas natas!
-          </p>
-        </header>
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1024px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column: Timer Controls */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-md relative overflow-hidden">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                  <Timer className="w-5 h-5 text-indigo-400" />
-                  Sekundometras
-                </h2>
-                {gameState !== 'idle' && (
-                  <button
-                    onClick={handleReset}
-                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> Atstatyti
-                  </button>
-                )}
-              </div>
+    header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
 
-              {/* IDLE STATE FORM */}
-              {gameState === 'idle' && (
-                <form onSubmit={handleStartTimer} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Mokinio vardas
-                    </label>
-                    <div className="relative">
-                      <User className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="pvz., Liepa"
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                        className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                      />
-                    </div>
-                  </div>
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(30, 27, 75, 0.8);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Pasirinkite oktavą
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {OCTAVES.filter((o) => o.id !== 'all').map((o) => (
-                        <button
-                          key={o.id}
-                          type="button"
-                          onClick={() => setSelectedOctave(o.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all text-left ${
-                            selectedOctave === o.id
-                              ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 shadow-sm'
-                              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:bg-slate-800/50'
-                          }`}
-                        >
-                          <span className="text-base">{o.icon}</span>
-                          <span className="truncate">{o.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+    h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1.15;
+      background: linear-gradient(to right, #fcd34d, #c7d2fe, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-                  <button
-                    type="submit"
-                    className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold py-4 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-base"
-                  >
-                    <Play className="w-5 h-5 fill-current" />
-                    Pasirengti ir Pradėti!
-                  </button>
-                </form>
-              )}
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 520px;
+      line-height: 1.45;
+    }
 
-              {/* COUNTDOWN STATE */}
-              {gameState === 'countdown' && (
-                <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                  <div className="text-7xl font-black text-amber-400 animate-bounce">
-                    {countdown}
-                  </div>
-                  <p className="text-slate-400 font-medium text-sm tracking-wide">
-                    Pasiruoškite sakyti natas...
-                  </p>
-                </div>
-              )}
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: start;
+    }
 
-              {/* RUNNING STATE */}
-              {gameState === 'running' && (
-                <div className="flex flex-col items-center justify-center py-6 space-y-6">
-                  <div className="text-6xl md:text-7xl font-mono font-bold text-emerald-400 tracking-wider">
-                    {formatTime(time)}
-                  </div>
-                  <button
-                    onClick={handleStopTimer}
-                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-xl tracking-wide uppercase"
-                  >
-                    <Square className="w-6 h-6 fill-current" />
-                    SUSTABDYTI
-                  </button>
-                </div>
-              )}
+    @media (min-width: 900px) {
+      h1 { font-size: 2.8rem; }
+      .grid { grid-template-columns: 5fr 7fr; }
+    }
 
-              {/* FINISHED STATE */}
-              {gameState === 'finished' && (
-                <div className="flex flex-col items-center py-4 space-y-5 text-center">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Užfiksuotas laikas
-                    </span>
-                    <div className="text-5xl font-mono font-black text-indigo-300 mt-1">
-                      {formatTime(lastRecordedTime)}
-                    </div>
-                  </div>
+    .card {
+      background-color: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6);
+    }
 
-                  {feedbackMessage && (
-                    <div
-                      className={`w-full p-4 rounded-2xl border text-xs leading-relaxed ${
-                        feedbackMessage.type === 'warning'
-                          ? 'bg-amber-950/40 border-amber-500/30 text-amber-300'
-                          : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
-                      }`}
-                    >
-                      {feedbackMessage.text}
-                    </div>
-                  )}
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
 
-                  <button
-                    onClick={handleReset}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Kitas mokinys
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-          {/* Right Column: Leaderboard */}
-          <div className="lg:col-span-7">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-md flex flex-col h-full">
-              
-              {/* Leaderboard Header */}
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-amber-400" />
-                  Lyderių lentelė
-                </h2>
-                {records.length > 0 && (
-                  <button
-                    onClick={handleClearAll}
-                    className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Išvalyti sąrašą
-                  </button>
-                )}
-              </div>
+    .form-group {
+      margin-bottom: 16px;
+    }
 
-              {/* Octave Tabs */}
-              <div className="flex flex-wrap gap-2 mb-6 bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
-                {OCTAVES.map((o) => (
-                  <button
-                    key={o.id}
-                    onClick={() => setFilterOctave(o.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                      filterOctave === o.id
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <span>{o.icon}</span>
-                    <span>{o.name}</span>
-                  </button>
-                ))}
-              </div>
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
 
-              {/* Records List & Podium */}
-              <div className="flex-grow overflow-y-auto max-h-[580px] pr-1 space-y-4">
-                {currentFilteredRecords.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 text-base">
-                    Šioje oktavoje dar nėra įrašytų rezultatų.
-                  </div>
-                ) : (
-                  <>
-                    {/* PODIUM (TOP 3) - BIGGER FONTS */}
-                    <div className="grid grid-cols-1 gap-3 mb-4">
-                      {currentFilteredRecords.slice(0, 3).map((record, index) => {
-                        const rank = index + 1;
-                        const octaveObj = OCTAVES.find((o) => o.id === record.octave);
-                        const prevRank = record.previousRank;
-                        const rankDiff = prevRank ? prevRank - rank : 0;
+    input, select {
+      width: 100%;
+      background-color: var(--bg-dark);
+      border: 1px solid var(--border-input);
+      border-radius: 12px;
+      padding: 13px 14px;
+      color: var(--text-main);
+      font-size: 1rem;
+      outline: none;
+    }
 
-                        let medal = '🥇';
-                        let bgStyle = 'bg-gradient-to-r from-amber-500/20 via-amber-950/40 to-slate-900 border-amber-500/50 text-amber-100 ring-1 ring-amber-500/20';
-                        let rankBadge = 'bg-amber-500 text-slate-950 font-black';
+    input:focus, select:focus {
+      border-color: var(--indigo);
+    }
 
-                        if (rank === 2) {
-                          medal = '🥈';
-                          bgStyle = 'bg-gradient-to-r from-slate-400/20 via-slate-900 to-slate-900 border-slate-400/40 text-slate-100';
-                          rankBadge = 'bg-slate-300 text-slate-950 font-black';
-                        } else if (rank === 3) {
-                          medal = '🥉';
-                          bgStyle = 'bg-gradient-to-r from-amber-700/20 via-slate-900 to-slate-900 border-amber-700/40 text-amber-200';
-                          rankBadge = 'bg-amber-700 text-white font-black';
-                        }
+    button {
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s;
+    }
 
-                        return (
-                          <div
-                            key={record.id}
-                            className={`flex items-center justify-between p-4 md:p-5 rounded-2xl border ${bgStyle} shadow-lg transition-all`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="text-3xl md:text-4xl flex items-center justify-center w-12">
-                                {medal}
-                              </div>
-                              <div>
-                                <div className="font-extrabold text-xl md:text-2xl text-white tracking-wide">
-                                  {record.name}
-                                </div>
-                                <div className="text-xs md:text-sm text-slate-300 flex items-center gap-2 mt-1 font-medium">
-                                  <span>{octaveObj?.icon} {octaveObj?.name}</span>
-                                  <span>•</span>
-                                  <span>{record.date}</span>
-                                </div>
-                              </div>
-                            </div>
+    button:active {
+      transform: scale(0.98);
+    }
 
-                            <div className="flex items-center gap-4">
-                              <div className="text-right flex flex-col items-end">
-                                <div className="font-mono font-black text-2xl md:text-3xl text-amber-300 tracking-tight">
-                                  {formatTime(record.time)}
-                                </div>
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--indigo), #6366f1);
+      color: white;
+      padding: 15px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+    }
 
-                                <div className="flex flex-col items-end gap-0.5 mt-1">
-                                  {record.previousRank === null ? (
-                                    <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/40">
-                                      ✨ Naujas!
-                                    </span>
-                                  ) : rankDiff > 0 ? (
-                                    <span className="text-xs md:text-sm font-extrabold text-emerald-400 flex items-center gap-0.5">
-                                      <ArrowUpRight className="w-4 h-4" /> +{rankDiff} vieta
-                                    </span>
-                                  ) : rankDiff < 0 ? (
-                                    <span className="text-xs md:text-sm font-extrabold text-rose-400 flex items-center gap-0.5">
-                                      <ArrowDownRight className="w-4 h-4" /> {rankDiff} vieta
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs font-semibold text-slate-400 flex items-center">
-                                      <Minus className="w-4 h-4" /> nepakito
-                                    </span>
-                                  )}
+    .btn-stop {
+      width: 100%;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: #020617;
+      padding: 18px;
+      font-size: 1.25rem;
+      font-weight: 900;
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.35);
+    }
 
-                                  {record.timeDiffMs && (
-                                    <span className="text-xs md:text-sm font-black text-emerald-400">
-                                      -{(record.timeDiffMs / 1000).toFixed(2)} s greičiau
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+    .btn-secondary {
+      width: 100%;
+      background-color: #1e293b;
+      color: #e2e8f0;
+      padding: 14px;
+      font-size: 1rem;
+      margin-top: 12px;
+    }
 
-                              <button
-                                onClick={() => handleDeleteRecord(record.id)}
-                                className="text-slate-500 hover:text-rose-400 p-1.5 transition-colors"
-                                title="Ištrinti įrašą"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+    .timer-box {
+      text-align: center;
+      padding: 16px 0;
+    }
 
-                    {/* REST OF THE LIST (4th place and below) */}
-                    {currentFilteredRecords.length > 3 && (
-                      <div className="space-y-2 pt-2 border-t border-slate-800">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
-                          Kiti rezultatai
-                        </div>
-                        {currentFilteredRecords.slice(3).map((record, index) => {
-                          const rank = index + 4;
-                          const octaveObj = OCTAVES.find((o) => o.id === record.octave);
-                          const prevRank = record.previousRank;
-                          const rankDiff = prevRank ? prevRank - rank : 0;
+    .active-student-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #1e293b;
+      color: var(--indigo-light);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
 
-                          return (
-                            <div
-                              key={record.id}
-                              className="flex items-center justify-between p-3.5 rounded-xl border bg-slate-950/50 border-slate-800/80 hover:border-slate-700 transition-all"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 text-center font-bold text-slate-400 text-base">
-                                  #{rank}
-                                </div>
-                                <div>
-                                  <div className="font-bold text-base text-slate-200">
-                                    {record.name}
-                                  </div>
-                                  <div className="text-xs text-slate-400 flex items-center gap-2">
-                                    <span>{octaveObj?.icon} {octaveObj?.name}</span>
-                                    <span>•</span>
-                                    <span>{record.date}</span>
-                                  </div>
-                                </div>
-                              </div>
+    .countdown-num {
+      font-size: 5rem;
+      font-weight: 900;
+      color: var(--amber);
+      line-height: 1;
+      padding: 16px 0;
+    }
 
-                              <div className="flex items-center gap-4">
-                                <div className="text-right flex flex-col items-end">
-                                  <div className="font-mono font-bold text-indigo-300 text-lg">
-                                    {formatTime(record.time)}
-                                  </div>
+    .timer-digits {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 3.25rem;
+      font-weight: 800;
+      color: #34d399;
+      margin-bottom: 20px;
+    }
 
-                                  <div className="flex flex-col items-end gap-0.5">
-                                    {record.previousRank === null ? (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
-                                        Naujas
-                                      </span>
-                                    ) : rankDiff > 0 ? (
-                                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-0.5">
-                                        <ArrowUpRight className="w-3.5 h-3.5" /> +{rankDiff} vieta
-                                      </span>
-                                    ) : rankDiff < 0 ? (
-                                      <span className="text-xs font-bold text-rose-400 flex items-center gap-0.5">
-                                        <ArrowDownRight className="w-3.5 h-3.5" /> {rankDiff} vieta
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs font-semibold text-slate-500">
-                                        —
-                                      </span>
-                                    )}
+    .finished-digits {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: var(--indigo-light);
+      margin-bottom: 8px;
+    }
 
-                                    {record.timeDiffMs && (
-                                      <span className="text-xs font-bold text-emerald-400">
-                                        -{(record.timeDiffMs / 1000).toFixed(2)} s greičiau
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+    .feedback-banner {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
 
-                                <button
-                                  onClick={() => handleDeleteRecord(record.id)}
-                                  className="text-slate-600 hover:text-rose-400 p-1 transition-colors"
-                                  title="Ištrinti įrašą"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+    .feedback-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
 
-        </div>
-      </div>
-    </div>
-  );
-}
-```
+    .feedback-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      padding: 7px 11px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      background-color: #1e293b;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tab-btn.active {
+      background-color: var(--indigo);
+      color: white;
+    }
+
+    .score-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .score-item {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background-color: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .score-item.top-1 {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.08), rgba(2, 6, 23, 1));
+    }
+
+    .score-item.top-2 {
+      border-color: rgba(148, 163, 184, 0.4);
+    }
+
+    .score-item.top-3 {
+      border-color: rgba(217, 119, 6, 0.4);
+    }
+
+    .player-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .rank-badge {
+      font-size: 1.5rem;
+      font-weight: 800;
+      min-width: 32px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .player-details {
+      min-width: 0;
+    }
+
+    .player-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .player-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .time-block {
+      text-align: right;
+    }
+
+    .time-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--indigo-light);
+    }
+
+    .improve-tag {
+      font-size: 0.72rem;
+      color: #34d399;
+      font-weight: 700;
+    }
+
+    .btn-del {
+      background: rgba(244, 63, 94, 0.12);
+      color: #fda4af;
+      padding: 7px 9px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fda4af;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <div class="container">
+    <header>
+      <div class="badge-top">🎵 Muzikos pamokos žaidimas</div>
+      <h1>Natų skaitymo čempionatas</h1>
+      <p class="subtitle">
